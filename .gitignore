@@ -1,0 +1,10 @@
+自然語言處理期末專題.pdf
+.claude/settings.json
+plan.md
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+settings.json
+spec/

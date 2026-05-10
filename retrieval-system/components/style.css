@@ -1,0 +1,476 @@
+/* ============================================================
+   NLP 課程問答系統 — Minimalist AI Interface
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── 全域重置 ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ══════════════════════════════════════════════
+   全域文字顏色修正（深色背景 → 強制亮色文字）
+   ══════════════════════════════════════════════ */
+body,
+.stApp,
+.stApp *,
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] span,
+p,
+li,
+span,
+label,
+div {
+  color: #e8e8e8;
+}
+
+/* ── 全域選取顏色 ── */
+::selection {
+  background-color: #4f8ef7 !important;
+  color: #ffffff !important;
+}
+
+::-moz-selection {
+  background-color: #4f8ef7 !important;
+  color: #ffffff !important;
+}
+
+/* ── 背景 & 字體 ── */
+.stApp {
+  background-color: #0d0d0d !important;
+  font-family: 'Inter', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── 隱藏 Streamlit 預設 UI chrome ── */
+#MainMenu {
+  visibility: hidden;
+}
+
+footer {
+  visibility: hidden;
+}
+
+header {
+  visibility: hidden;
+}
+
+.stDeployButton {
+  display: none;
+}
+
+/* ── 主標題 ── */
+.app-title {
+  font-size: 2.4rem;
+  font-weight: 500;
+  text-align: center;
+  color: #f0f0f0 !important;
+  margin-top: 2.5rem;
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* ── 副標題 ── */
+.app-subtitle {
+  font-size: 0.95rem;
+  text-align: center;
+  color: #7a7a7a !important;
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+/* ══════════════════════════════════════════════
+   輸入框固定底部
+   ══════════════════════════════════════════════ */
+
+/* 讓主內容區留出底部空間，避免最後一則訊息被輸入框遮住 */
+[data-testid="stVerticalBlock"]>[data-testid="stVerticalBlock"]:has([data-testid="stChatInput"]) {
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  background: #0d0d0d;
+  padding-bottom: 12px;
+}
+
+/* 讓對話區可捲動，輸入框始終貼底 */
+section.main>div.block-container {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0 !important;
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+}
+
+/* 固定 chat input 到視窗底部 */
+[data-testid="stChatInput"] {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 999 !important;
+  padding: 20px 24px 28px !important;
+  background: #0d0d0d !important;
+  border-top: 1px solid #222 !important;
+  /* 頂部淡淡的分隔線 */
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* 對話訊息區底部加足夠 padding，避免被固定輸入框遮住 */
+[data-testid="stChatMessageContainer"],
+[data-testid="stVerticalBlock"] {
+  padding-bottom: 90px;
+}
+
+/* ── 聊天輸入框樣式 ── */
+.stChatInput>div {
+  background: #1a1a1a !important;
+  border: 1px solid #333333 !important;
+  border-radius: 32px !important;
+  /* 膠囊圓角 */
+  padding: 8px 12px !important;
+  /* 增加內部空間 */
+}
+
+.stChatInput textarea {
+  background: #1a1a1a !important;
+  color: #f0f0f0 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 1.1rem !important;
+  caret-color: #f0f0f0 !important;
+  -webkit-text-fill-color: #f0f0f0 !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  padding-left: 15px !important;
+  /* 移除 Safari 預設樣式 */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-shadow: none !important;
+}
+
+.stChatInput textarea::placeholder {
+  color: #666 !important;
+  -webkit-text-fill-color: #666 !important;
+}
+
+/* 修正 selection（選取文字）反白顏色 */
+.stChatInput textarea::selection {
+  background: #4f8ef7 !important;
+  color: #fff !important;
+}
+
+.stChatInput button {
+  background-color: #4f8ef7 !important;
+  border-radius: 50% !important;
+  color: #ffffff !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  margin-right: 4px !important;
+  margin-bottom: 2px !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
+}
+
+.stChatInput button svg {
+  fill: #ffffff !important;
+  width: 22px !important;
+  height: 22px !important;
+}
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+  background: #1a1a1a !important;
+  border-radius: 10px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  border-bottom: none !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  color: #7a7a7a !important;
+  border-radius: 8px !important;
+  font-weight: 400 !important;
+  padding: 8px 20px !important;
+  transition: color 0.2s, background 0.2s;
+}
+
+.stTabs [aria-selected="true"] {
+  color: #f0f0f0 !important;
+  background: #2a2a2a !important;
+  font-weight: 500 !important;
+}
+
+.stTabs [data-baseweb="tab-highlight"] {
+  display: none !important;
+}
+
+.stTabs [data-baseweb="tab-border"] {
+  display: none !important;
+}
+
+/* 隱藏 Streamlit 原生的對話氣泡 (避免 Optimistic UI 產生的版面錯亂) */
+[data-testid="stChatMessage"] {
+  display: none !important;
+}
+
+/* ── 按鈕 ── */
+.stButton>button {
+  background: #1a1a1a !important;
+  color: #c0c0c0 !important;
+  border: 1px solid #2e2e2e !important;
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  transition: background 0.2s, color 0.2s;
+}
+
+.stButton>button:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+  border-color: #444 !important;
+}
+
+/* ── Primary / Download 按鈕 ── */
+.stDownloadButton>button {
+  background: #4f8ef7 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+.stDownloadButton>button:hover {
+  background: #3a7de8 !important;
+}
+
+/* ── File uploader ── */
+[data-testid="stFileUploader"] {
+  background: #1a1a1a !important;
+  border: 1px dashed #3a3a3a !important;
+  border-radius: 12px !important;
+  padding: 8px !important;
+}
+
+[data-testid="stFileUploader"] * {
+  color: #b0b0b0 !important;
+}
+
+/* 拖曳區深色化 - 徹底覆蓋 */
+[data-testid="stFileUploader"] section {
+  background-color: #1a1a1a !important;
+  border-color: #3a3a3a !important;
+}
+
+[data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"] p {
+  color: #e8e8e8 !important;
+}
+
+/* 放大並提亮上傳圖示 (SVG) */
+[data-testid="stFileUploader"] svg {
+  fill: #e8e8e8 !important;
+  /* 使用亮藍色讓 icon 更明顯 */
+}
+
+/* 附註文字 (如 200MB per file) 保持適中灰度 */
+[data-testid="stFileUploader"] small {
+  color: #e8e8e8 !important;
+}
+
+[data-testid="stFileUploadDropzone"] {
+  background-color: #1a1a1a !important;
+  border: 1px dashed #3a3a3a !important;
+}
+
+/* 針對內部 div 的強制修正 */
+[data-testid="stFileUploadDropzone"]>div {
+  background-color: transparent !important;
+}
+
+[data-testid="stFileUploader"] button {
+  background-color: #2a2a2a !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #3a3a3a !important;
+}
+
+/* ── 行內 code / strong 標記（說明文字中的「題目」反白框） ── */
+code,
+pre {
+  background: #2a2a2a !important;
+  color: #e8e8e8 !important;
+  border-radius: 5px !important;
+  padding: 1px 6px !important;
+  font-family: 'Inter', 'SF Mono', monospace !important;
+}
+
+strong,
+b {
+  color: #f0f0f0 !important;
+}
+
+/* ── 進度條 ── */
+.stProgress>div>div>div {
+  background: #4f8ef7 !important;
+}
+
+/* ── Dataframe / Table ── */
+[data-testid="stDataFrame"] {
+  border: 1px solid #2e2e2e !important;
+  border-radius: 10px !important;
+  background-color: #1a1a1a !important;
+  overflow: hidden;
+}
+
+/* ── Expander ── */
+[data-testid="stExpander"] {
+  background-color: #1a1a1a !important;
+  border: 1px solid #2e2e2e !important;
+  border-radius: 10px !important;
+}
+
+[data-testid="stExpander"] summary {
+  background-color: #1a1a1a !important;
+  color: #f0f0f0 !important;
+  border-radius: 10px !important;
+}
+
+[data-testid="stExpander"] summary:hover,
+[data-testid="stExpander"] summary:focus,
+[data-testid="stExpander"] summary:active {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+[data-testid="stExpander"] summary svg {
+  fill: #f0f0f0 !important;
+}
+
+[data-testid="stExpander"] [data-testid="stVerticalBlock"] {
+  background-color: #1a1a1a !important;
+  padding: 10px !important;
+}
+
+/* ── Sidebar（清除對話按鈕區域） ── */
+[data-testid="stSidebar"] {
+  background: #111 !important;
+  border-right: 1px solid #1e1e1e !important;
+}
+
+[data-testid="stSidebar"] * {
+  color: #c0c0c0;
+}
+
+/* ── 通知 / Alert (st.info, st.error, etc.) ── */
+.stAlert {
+  border-radius: 10px !important;
+  border: 1px solid #2e2e2e !important;
+  background-color: #1a1a1a !important;
+  font-size: 0.9rem !important;
+}
+
+.stAlert [data-testid="stMarkdownContainer"] p {
+  color: #f0f0f0 !important;
+}
+
+/* ── Spinner ── */
+.stSpinner>div {
+  border-top-color: #4f8ef7 !important;
+}
+
+/* ── Info / Warning / Error 文字 ── */
+[data-testid="stNotification"] * {
+  color: inherit;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+
+::-webkit-scrollbar-track {
+  background: #0d0d0d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* ══════════════════════════════════════════════
+   聊天室動態寬度對齊與 Tab 固定
+   ══════════════════════════════════════════════ */
+
+/* 調整對話容器（支援自訂的 #chat-history 或原生 .stChatMessageContainer） */
+#chat-history,
+[data-testid="stChatMessageContainer"] {
+  max-width: 1050px !important;
+  /* 與下方輸入框視覺對齊的寬度 */
+  margin: 0 auto !important;
+  /* 水平置中 */
+  padding-bottom: 150px !important;
+  /* 底部間距，確保不被輸入框遮擋 */
+  width: 100% !important;
+}
+
+/* 限制整個分頁的內容區域寬度，與上方的 70% 標籤列對齊 */
+[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+  width: 70% !important;
+  margin: 0 auto !important;
+  padding-top: 85px !important;
+  /* 把內容往下推，避免被固定的標籤列蓋住 */
+}
+
+/* 讓 Tab List (切換標籤) 固定在標題下方 */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+  position: fixed !important;
+  width: 70% !important;
+  top: 153px !important;
+  /* 避開上方標題的高度 */
+  left: 50% !important;
+  /* 先將左側邊緣推到畫面中間 */
+  transform: translateX(-50%) !important;
+  /* 再向左回推自身寬度的 50% */
+  z-index: 990 !important;
+  /* 在它背後加上跟網頁底色一樣的顏色，避免捲動時文字透過去 */
+  box-shadow: 0 10px 10px #0d0d0d;
+  border-bottom: 10px solid #1a1a1a;
+}
+
+/* 讓 title固定在最上方 */
+.header-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-color: #0d0d0d;
+  z-index: 1000;
+  padding-top: 0px;
+  padding-bottom: 10px;
+}
+
+/* ── Tooltips ── */
+[data-baseweb="tooltip"] {
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+}
+
+[data-baseweb="tooltip"] * {
+  color: #262424 !important;
+  font-size: 0.95rem !important;
+}
