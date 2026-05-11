@@ -178,75 +178,6 @@ with tab_qa:
 # Tab 2 — 批次推論
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _get_gemini_client():
-    """建立 Gemini 客戶端。"""
-    from google import genai
-    return genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-
-
-def _run_batch(df: pd.DataFrame) -> None:
-    """執行批次推論並在頁面上顯示進度與結果。"""
-    questions: list[str] = df["題目"].tolist()
-    system_prompt: str = st.session_state.system_prompt
-    model = os.environ.get("GEMINI_MODEL", "gemini-3-pro-preview")
-    concurrency = int(os.environ.get("GEMINI_MAX_CONCURRENT", "10"))
-
-    results: list[str] = [""] * len(questions)
-    progress_bar = st.progress(0, text=f"推論中… 0 / {len(questions)}")
-
-    async def _run_all() -> None:
-        from google.genai import types
-        client = _get_gemini_client()
-        sem = asyncio.Semaphore(concurrency)
-
-        async def _one(i: int, q: str) -> None:
-            async with sem:
-                try:
-                    # 使用 Gemini 非同步介面
-                    resp = await client.aio.models.generate_content(
-                        model=model,
-                        contents=q,
-                        config=types.GenerateContentConfig(
-                            system_instruction=system_prompt,
-                            max_output_tokens=1024,
-                        ),
-                    )
-                    results[i] = resp.text or "（無內容）"
-                except Exception as exc:
-                    results[i] = f"（推論失敗：{exc}）"
-            progress_bar.progress(
-                (i + 1) / len(questions),
-                text=f"推論中… {i + 1} / {len(questions)}",
-            )
-
-        await asyncio.gather(*[_one(i, q) for i, q in enumerate(questions)])
-
-    try:
-        asyncio.run(_run_all())
-    except Exception as exc:
-        progress_bar.empty()
-        st.error(f"批次推論中止：{exc}")
-        return
-
-    progress_bar.empty()
-    st.success(f"✅ 推論完成，共 {len(questions)} 題。")
-
-    df_out = df.copy()
-    df_out["答案"] = results
-
-    # 下載按鈕
-    csv_bytes = df_out.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
-    st.download_button(
-        label="⬇ 下載結果 CSV",
-        data=csv_bytes,
-        file_name="output.csv",
-        mime="text/csv",
-        key="download_result",
-    )
-
-    # 結果預覽
-    st.markdown("#### 結果預覽（前 10 列）")
-    st.dataframe(df_out.head(10), use_container_width=True)
 
 
 with tab_batch:
@@ -296,28 +227,28 @@ with tab_batch:
                     
                     results = []
                     chunk_size = int(os.environ.get("BATCH_SIZE", "15"))
-                    
+                    wait_sec = (60 // chunk_size)  # 每題等待秒數，確保不超過每分鐘請求數的限制
                     progress_bar = st.progress(0, text="準備推論...")
                     status_text = st.empty()
-                    
-                    for i in range(0, len(questions), chunk_size):
-                        chunk = questions[i:i+chunk_size]
-                        end_idx = min(i+chunk_size, len(questions))
+
+                    n = len(questions)
+                    for i in range(n):
+                        q = questions[i]
+                        progress_bar.progress(i / n, text=f"進度：{i} / {n}")
                         
-                        progress_bar.progress(i / len(questions), text=f"進度：{i} / {len(questions)}")
-                        #status_text.info(f"⏳ 正在推論第 {i+1} ~ {end_idx} 題，請稍候...")
-                        
-                        # 處理此批次
-                        chunk_results = asyncio.run(_process_all_gemini(chunk, st.session_state.system_prompt))
-                        results.extend(chunk_results)
-                        
-                        progress_bar.progress(end_idx / len(questions), text=f"進度：{len(results)} / {len(questions)}")
-                        
-                        # 如果還有剩餘題目，進入 60 秒等待器
-                        if end_idx < len(questions):
-                            for wait_sec in range(60, 0, -1):
-                                #status_text.warning(f"⚠️ 為遵守每分鐘 15 題限制，等待 {wait_sec} 秒後處理下一批...")
-                                time.sleep(1)
+                        # 呼叫推論，並確保結果是單一字串
+                        try:
+                            ans = ask(q, st.session_state.system_prompt)
+                            # 如果回傳是 list，取第一個元素
+                            if isinstance(ans, list):
+                                ans = ans[0] if len(ans) > 0 else "無結果"
+                        except Exception as e:
+                            ans = f"推論出錯: {str(e)}"
+                            
+                        results.append(ans)
+
+                        progress_bar.progress((i + 1) / n, text=f"進度：{i + 1} / {n}")
+
                                 
                     status_text.empty()
                     
