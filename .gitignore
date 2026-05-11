@@ -9,3 +9,5 @@ __pycache__/
 settings.json
 spec/
 .DS_Store
+NLP-Course-Info-input.csv
+NLP-Course-Info.csv
