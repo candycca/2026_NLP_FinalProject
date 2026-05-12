@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
 from pathlib import Path
 
 import openai
@@ -73,6 +74,23 @@ def _init_state() -> None:
 
 
 _init_state()
+
+
+def _ask_with_retry(question: str, system_prompt: str, max_tokens: int = 1024) -> str:
+    retry_count = int(os.environ.get("LLM_RETRY_COUNT", "3"))
+    wait_sec = float(os.environ.get("LLM_RETRY_WAIT", "5"))
+    max_wait_sec = float(os.environ.get("LLM_RETRY_MAX_WAIT", "60"))
+
+    for attempt in range(retry_count + 1):
+        try:
+            return ask(question, system_prompt, max_tokens=max_tokens)
+        except Exception as exc:
+            message = str(exc)
+            is_503 = "503" in message or "UNAVAILABLE" in message
+            if (not is_503) or attempt >= retry_count:
+                raise
+            time.sleep(wait_sec)
+            wait_sec = min(wait_sec * 2, max_wait_sec)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # API Key 檢查
@@ -157,7 +175,7 @@ with tab_qa:
         # 呼叫 LLM
         with st.spinner("思考中…"):
             try:
-                answer = ask(user_input, st.session_state.system_prompt)
+                answer = _ask_with_retry(user_input, st.session_state.system_prompt)
             except openai.APITimeoutError:
                 answer = "⚠️ 請求逾時，請稍後再試。"
             except openai.APIConnectionError:
@@ -238,7 +256,7 @@ with tab_batch:
                         
                         # 呼叫推論，並確保結果是單一字串
                         try:
-                            ans = ask(q, st.session_state.system_prompt)
+                            ans = _ask_with_retry(q, st.session_state.system_prompt)
                             # 如果回傳是 list，取第一個元素
                             if isinstance(ans, list):
                                 ans = ans[0] if len(ans) > 0 else "無結果"
@@ -246,6 +264,8 @@ with tab_batch:
                             ans = f"推論出錯: {str(e)}"
                             
                         results.append(ans)
+                        #等待
+                        time.sleep(wait_sec)
 
                         progress_bar.progress((i + 1) / n, text=f"進度：{i + 1} / {n}")
 
@@ -272,3 +292,4 @@ with tab_batch:
                     # 結果預覽
                     st.markdown("#### 結果預覽（前 10 列）")
                     st.dataframe(df_out.head(10), use_container_width=True)
+
