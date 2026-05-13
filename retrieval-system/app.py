@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 _BASE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_BASE / "src"))
 
-from llm_client import ask  # noqa: E402  (after sys.path)
+from llm_client import ask, _ask_twcc  # noqa: E402  (after sys.path)
 from prompt_builder import build_system_prompt  # noqa: E402
 from batch_infer import _process_all_gemini
 
@@ -81,16 +81,26 @@ def _ask_with_retry(question: str, system_prompt: str, max_tokens: int = 1024) -
     wait_sec = float(os.environ.get("LLM_RETRY_WAIT", "5"))
     max_wait_sec = float(os.environ.get("LLM_RETRY_MAX_WAIT", "60"))
 
+    last_exc = None
     for attempt in range(retry_count + 1):
         try:
             return ask(question, system_prompt, max_tokens=max_tokens)
         except Exception as exc:
+            last_exc = exc
             message = str(exc)
             is_503 = "503" in message or "UNAVAILABLE" in message
             if (not is_503) or attempt >= retry_count:
-                raise
+                break
             time.sleep(wait_sec)
             wait_sec = min(wait_sec * 2, max_wait_sec)
+
+    # 若重試後還是失敗，改用台智雲API
+    try:
+        # 假設你有一個 ask_taigi 函數，參數與 ask 相同
+        return _ask_twcc(question, system_prompt, max_tokens=max_tokens)
+    except Exception as taigi_exc:
+        # 兩邊都失敗，回傳詳細錯誤
+        return f"主API與台智雲API皆失敗\n主API錯誤: {last_exc}\n台智雲API錯誤: {taigi_exc}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # API Key 檢查
