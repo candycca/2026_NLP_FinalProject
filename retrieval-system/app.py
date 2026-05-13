@@ -17,6 +17,8 @@ import openai
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+import logging
+from rich.console import Console
 
 # ── 路徑設定 ─────────────────────────────────────────────────────────────────
 _BASE = Path(__file__).parent.resolve()
@@ -38,6 +40,7 @@ for key in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy
 
 DATA_DIR = str(_BASE / "data")
 CSS_PATH = _BASE / "components" / "style.css"
+console = Console()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 頁面設定（必須是第一個 Streamlit 呼叫）
@@ -89,6 +92,12 @@ def _ask_with_retry(question: str, system_prompt: str, max_tokens: int = 1024) -
             last_exc = exc
             message = str(exc)
             is_503 = "503" in message or "UNAVAILABLE" in message
+            st.components.v1.html(f"""
+                <script>
+                    console.log("LLM 請求失敗（嘗試 {attempt + 1}/{retry_count + 1}）等候時間{wait_sec}，錯誤訊息: {message}");
+                </script>
+            """, height=0)
+            console.log(f"LLM 請求失敗（嘗試 {attempt + 1}/{retry_count + 1}）等候時間{wait_sec}，錯誤訊息: {message}")
             if (not is_503) or attempt >= retry_count:
                 break
             time.sleep(wait_sec)
@@ -97,9 +106,21 @@ def _ask_with_retry(question: str, system_prompt: str, max_tokens: int = 1024) -
     # 若重試後還是失敗，改用台智雲API
     try:
         # 假設你有一個 ask_taigi 函數，參數與 ask 相同
+        st.components.v1.html(f"""
+                <script>
+                    console.log("主API失敗，嘗試使用台智雲API，錯誤訊息: {last_exc}，問題: {question}");
+                </script>
+            """, height=0)
+        console.log(f"主API失敗，嘗試使用台智雲API，錯誤訊息: {last_exc}，問題: {question}")
         return _ask_twcc(question, system_prompt, max_tokens=max_tokens)
     except Exception as taigi_exc:
         # 兩邊都失敗，回傳詳細錯誤
+        st.components.v1.html(f"""
+                <script>
+                    console.log("主API與台智雲API皆失敗\n主API錯誤: {last_exc}\n台智雲API錯誤: {taigi_exc}");
+                </script>
+            """, height=0)
+        console.log(f"主API與台智雲API皆失敗\n主API錯誤: {last_exc}\n台智雲API錯誤: {taigi_exc}")
         return f"主API與台智雲API皆失敗\n主API錯誤: {last_exc}\n台智雲API錯誤: {taigi_exc}"
 
 # ─────────────────────────────────────────────────────────────────────────────
