@@ -1,14 +1,15 @@
 # NLP 課程問答系統 (Retrieval-System)
 
-這是一個基於 Streamlit 開發的 NLP 課程專屬問答系統。系統結合了課程知識庫（CSV），並透過串接大語言模型 (Gemini API) 來回答學生的課程相關問題或是 NLP 學術知識。
+這是一個基於 Streamlit 開發的 NLP 課程專屬問答系統。系統結合了課程知識庫（CSV），並透過串接大語言模型 (Gemini API and TWCC API) 來回答學生的課程相關問題或是 NLP 學術知識。
 
 ## Live Demo: [https://2026nlpfinalproject.streamlit.app](https://2026nlpfinalproject.streamlit.app)
 
 ## 🌟 網頁功能
 
 - **互動式問答 (Interactive QA)**：提供聊天介面，使用者可以直接輸入問題與 NLP 助手進行互動對話。
+![](images/QA_1.png)
 - **批次推論 (Batch Inference)**：支援上傳包含「題目」欄位的 CSV 檔案，系統會自動非同步、並行處理所有題目，並將答案產出為 CSV 提供下載。
-- **智慧速率限制**：在批次處理時，系統實作了智慧限速機制（每分鐘最多 15 題），以遵守 API 速率限制（Rate Limit）並確保系統穩定性。
+![](images/batch_1.png)
 
 ## 📝 使用說明
 
@@ -16,18 +17,20 @@
 1. 切換至「💬 互動式問答」分頁。
 2. 在下方輸入框輸入你對 NLP 課程的疑問（例如：「這堂課的期末專題要幹嘛？」、「什麼是馬可夫過程？」）。
 3. 助手會根據載入的資料庫給予精確的回覆。
-
+![](images/QA_2.png)
 ### 批次推論
 1. 切換至「📂 批次推論」分頁。
+![](images/batch_1.png)
 2. 準備一個含有 **「題目」** 欄位的 CSV 檔案。範例如下 (`input.csv`)：
    | 題目 |
    | :--- |
    | 什麼是時間均勻的馬可夫過程？ |
    | HMM 的三個假設是什麼？ |
    | stemming和lemmatization有何不同? |
-3. 將檔案上傳中。
-4. 點擊「🚀 開始推論」。
+3. 上傳檔案後，點擊「🚀 開始推論」。。
+![](images/batch_2.png)
 5. 推論完成後，點擊「⬇ 下載結果 CSV」即可取得包含答案的檔案。
+![](images/batch_3.png)
 
 
 
@@ -65,17 +68,27 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-接著，使用文字編輯器打開 `.env` 檔案，填寫你的 Gemini API 金鑰及其他設定：
+接著，使用文字編輯器打開 `.env` 檔案，填寫你的 Gemini API 金鑰及 TWCC API 金鑰其他設定：
 
 ```env
+# --- Gemini ---
+
 # Gemini API Key (必填)
 GEMINI_API_KEY="your_api_key_here"
 
-# 使用的模型 (預設: gemini-3-pro-preview)
-GEMINI_MODEL="gemini-3-pro-preview"
+# Gemini 使用的模型 (預設:gemini-3.1-flash-lite)
+GEMINI_MODEL="gemini-3.1-flash-lite"
 
-# 非同步最大並行數量
-TWCC_MAX_CONCURRENT=10
+# Gemini Model每分鐘限制的請求數(預設:15，gemini-3.1-flash-lite 的限制) ---
+Batch_Size = 15
+
+# --- TWCC ---
+
+# TWCC API Key (必填)
+TWCC_API_KEY=your-uuid-here
+
+# TWCC 使用的模型 (預設:llama3.3-ffm-70b-32k-chat)
+TWCC_MODEL=llama3.3-ffm-70b-32k-chat
 ```
 
 ### 3. 準備課程資料
