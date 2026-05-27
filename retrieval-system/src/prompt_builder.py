@@ -33,7 +33,7 @@ def _load_slides(slides_dir: str) -> str:
 
 
 def build_system_prompt(data_dir: str) -> str:
-    course_info = _load_csv(os.path.join(data_dir, "NLP-Course-Info.csv"))
+    course_info = _load_csv(os.path.join(data_dir, "NLP-Course-Info-v2.csv"))
 
     slides = _load_slides(os.path.join(data_dir, "slides"))
     if slides:
